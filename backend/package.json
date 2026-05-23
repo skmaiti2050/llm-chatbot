@@ -1,0 +1,48 @@
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "swc src -d dist --copy-files",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:dev:light": "cross-env TS_NODE_TRANSPILE_ONLY=true TS_NODE_FILES=true node --watch -r tsconfig-paths/register -r ts-node/register src/main.ts",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node --enable-source-maps dist/src/main.js",
+    "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
+    "typecheck": "tsc --noEmit --incremental false --project tsconfig.build.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.23",
+    "@nestjs/core": "^11.1.23",
+    "@nestjs/platform-express": "^11.1.23",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@nestjs/cli": "^11.0.21",
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.40",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "@types/supertest": "^7.2.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "swc-node": "^1.0.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4"
+  },
+  "jest": {}
+}

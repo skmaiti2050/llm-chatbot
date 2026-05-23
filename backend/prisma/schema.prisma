@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InferenceLogStatus {
+  success
+  error
+}
+
+model InferenceLog {
+  id            String             @id @default(uuid())
+  sessionId     String
+  requestId     String
+  traceId       String?
+  provider      String
+  model         String
+  startedAt     DateTime
+  finishedAt    DateTime?
+  latencyMs     Int
+  status        InferenceLogStatus
+  inputPreview  String?
+  outputPreview String?
+  errorMessage  String?
+  tokenUsage    Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([sessionId, startedAt])
+  @@index([requestId])
+  @@index([createdAt])
+}

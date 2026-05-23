@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import type { CreateConversationResult } from './dto/create-conversation.dto';
-import type { SendMessageDto, MessageRecord } from './dto/send-message.dto';
+import type { MessageRecord } from './dto/send-message.dto';
 
 @Controller('conversations')
 export class ChatController {
@@ -25,7 +25,6 @@ export class ChatController {
   ): Promise<MessageRecord> {
     return this.chatService.sendMessage({
       conversationId: id,
-      role: 'user',
       content,
     });
   }

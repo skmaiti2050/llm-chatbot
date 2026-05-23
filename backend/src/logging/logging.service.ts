@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { CreateInferenceLogDto } from '../ingestion/inference-log.dto';
 
@@ -26,7 +27,7 @@ export class LoggingService {
 
     const log: CreateInferenceLogDto = {
       sessionId: payload.sessionId,
-      requestId: payload.requestId,
+      requestId: payload.requestId ?? randomUUID(),
       traceId: payload.traceId,
       provider: payload.provider,
       model: payload.model,

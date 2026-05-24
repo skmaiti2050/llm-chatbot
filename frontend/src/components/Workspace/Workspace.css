@@ -42,9 +42,29 @@
 
 .workspace-pane__actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.65rem;
+}
+
+.workspace-pane__action-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workspace-pane__action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ink);
+}
+
+.workspace-pane__action-btn--danger:hover {
+  color: #c93d3d;
+  background: rgba(201, 61, 61, 0.08);
 }
 
 .workspace-pane__hint {
@@ -97,6 +117,43 @@
   border-radius: 1.3rem;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.75);
+}
+
+.workspace-pane__message--typing {
+  border-color: var(--line);
+}
+
+.workspace-pane__typing {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+}
+
+.workspace-pane__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: workspace-pane__bounce 1.2s infinite;
+}
+
+.workspace-pane__dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.workspace-pane__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes workspace-pane__bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-0.35rem);
+    opacity: 1;
+  }
 }
 
 .workspace-pane__message--user {
@@ -236,16 +293,22 @@
   font-size: 0.72rem;
 }
 
+.workspace-pane__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
 .workspace-pane textarea {
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
-  min-height: 8.5rem;
+  min-height: 3.5rem;
   border: 1px solid var(--line);
   border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.9);
   color: var(--ink);
-  padding: 1rem 1.05rem;
+  padding: 1rem 5.5rem 1rem 1.05rem;
   font: inherit;
   line-height: 1.6;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
@@ -255,26 +318,60 @@
   color: #9b9284;
 }
 
+.workspace-pane textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  resize: none;
+}
+
+.workspace-pane__chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .workspace-pane textarea:focus-visible,
 .workspace-pane__button:focus-visible,
+.workspace-pane__button--overlay:focus-visible,
 .workspace-pane__button--ghost:focus-visible,
 .workspace-pane__chip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-.workspace-pane__footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.9rem;
+.workspace-pane__button--overlay {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #f8f6f0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  box-shadow: 0 4px 10px rgba(18, 68, 86, 0.22);
+  transition: all 0.2s ease;
+}
+
+.workspace-pane__button--overlay:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.workspace-pane__button--overlay:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(18, 68, 86, 0.3);
 }
 
 .workspace-pane__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  margin-top: 1.5rem;
+  justify-content: center;
 }
 
 .workspace-pane__chip,

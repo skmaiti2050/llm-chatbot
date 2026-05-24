@@ -43,15 +43,12 @@ export function Workspace({
 
         <div className="workspace-pane__actions">
           {conversationStatus === 'active' && (
-            <button className="workspace-pane__button workspace-pane__button--cancel" type="button" onClick={onCancelConversation}>
+            <button className="workspace-pane__action-btn" type="button" onClick={onCancelConversation}>
               Cancel
             </button>
           )}
-          <button className="workspace-pane__button workspace-pane__button--delete" type="button" onClick={onDeleteConversation}>
+          <button className="workspace-pane__action-btn workspace-pane__action-btn--danger" type="button" onClick={onDeleteConversation}>
             Delete
-          </button>
-          <button className="workspace-pane__button workspace-pane__button--ghost" type="button" onClick={onNewSession}>
-            New session
           </button>
           <span className="workspace-pane__hint">API base: {apiBase}</span>
         </div>
@@ -61,7 +58,14 @@ export function Workspace({
         {messages.length === 0 ? (
           <div className="workspace-pane__empty">
             <h3>The transcript is empty.</h3>
-            <p>Start with one of the prompts on the right, or write your own line below.</p>
+            <p>Start with one of the prompts below, or write your own message.</p>
+            <div className="workspace-pane__chips" aria-label="Prompt presets">
+              {promptPresets.map((prompt) => (
+                <button key={prompt} className="workspace-pane__chip" type="button" onClick={() => { if (conversationStatus !== 'active') return; onPresetSelect(prompt) }} disabled={conversationStatus !== 'active'}>
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           messages.map((message) => (
@@ -86,31 +90,42 @@ export function Workspace({
             </article>
           ))
         )}
+
+        {isSending && (
+          <article className="workspace-pane__message workspace-pane__message--assistant workspace-pane__message--typing" aria-label="Assistant is typing">
+            <div className="workspace-pane__meta">
+              <span>Assistant</span>
+            </div>
+            <div className="workspace-pane__typing">
+              <span className="workspace-pane__dot" />
+              <span className="workspace-pane__dot" />
+              <span className="workspace-pane__dot" />
+            </div>
+          </article>
+        )}
       </section>
 
       <form className="workspace-pane__composer" onSubmit={onSubmit}>
         <label className="workspace-pane__label" htmlFor="message">
           Message
         </label>
-        <textarea
-          id="message"
-          value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
-          placeholder="Type your message here..."
-          rows={4}
-        />
-
-        <div className="workspace-pane__footer">
-          <div className="workspace-pane__chips" aria-label="Prompt presets">
-            {promptPresets.map((prompt) => (
-              <button key={prompt} className="workspace-pane__chip" type="button" onClick={() => onPresetSelect(prompt)}>
-                {prompt}
-              </button>
-            ))}
-          </div>
-
-          <button className="workspace-pane__button" type="submit" disabled={isSending || draft.trim().length === 0}>
-            {isSending ? 'Sending…' : 'Send message'}
+        <div className="workspace-pane__input-wrapper">
+          <textarea
+            id="message"
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                document.getElementById('workspace-submit')?.click()
+              }
+            }}
+            placeholder={conversationStatus !== 'active' ? `Conversation is ${conversationStatus}` : 'Type your message here…'}
+            rows={1}
+            disabled={conversationStatus !== 'active'}
+          />
+          <button id="workspace-submit" className="workspace-pane__button--overlay" type="submit" disabled={isSending || draft.trim().length === 0 || conversationStatus !== 'active'}>
+            {isSending ? 'Sending…' : 'Send'}
           </button>
         </div>
       </form>

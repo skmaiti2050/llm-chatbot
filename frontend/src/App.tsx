@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import './App.css'
 import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog'
-import { NotesPanel } from './components/NotesPanel/NotesPanel'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { Workspace } from './components/Workspace/Workspace'
 import {
@@ -29,6 +28,8 @@ function App() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState('Connecting to the API…')
   const booted = useRef(false)
+  const abortRef = useRef<AbortController | null>(null)
+  const cancelRef = useRef(false)
 
   useEffect(() => {
     if (booted.current) return
@@ -67,7 +68,7 @@ function App() {
     setMessages(data)
   }
 
-  async function loadConversations() {
+  async function loadConversations(activeId?: string) {
     setIsLoadingConversations(true)
 
     try {
@@ -77,7 +78,8 @@ function App() {
         const data = (await response.json()) as ConversationSummary[]
         setConversations(data)
 
-        const current = data.find((c) => c.id === conversationId)
+        const id = activeId ?? conversationId
+        const current = data.find((c) => c.id === id)
         if (current) {
           setConversationStatus(current.status)
         }
@@ -131,7 +133,7 @@ function App() {
       setConversationId(data.conversationId)
       setConversationStatus('active')
       await loadMessages(data.conversationId)
-      void loadConversations()
+      void loadConversations(data.conversationId)
       setConnectionState('online')
       setStatusNote('Connected to the backend')
     } catch {
@@ -161,6 +163,10 @@ function App() {
   async function handleCancelConversation() {
     if (!conversationId || connectionState !== 'online') return
 
+    cancelRef.current = true
+    abortRef.current?.abort()
+    setIsSending(false)
+
     try {
       const response = await fetch(`${apiBase}/conversations/${conversationId}`, {
         method: 'PATCH',
@@ -174,7 +180,7 @@ function App() {
 
       setConversationStatus('canceled')
       setStatusNote('Conversation canceled')
-      void loadConversations()
+      void loadConversations(conversationId)
     } catch {
       setStatusNote('Failed to cancel conversation')
     }
@@ -208,15 +214,15 @@ function App() {
           setConversationId(next.id)
           setConversationStatus(next.status)
           await loadMessages(next.id)
+          void loadConversations(next.id)
         } else {
           setConversationId('')
           setConversationStatus('active')
           setMessages([])
+          void loadConversations()
         }
-
-        void loadConversations()
       } else {
-        void loadConversations()
+        void loadConversations(conversationId)
       }
     } catch {
       setStatusNote('Failed to delete conversation')
@@ -227,10 +233,9 @@ function App() {
     event.preventDefault()
 
     const content = draft.trim()
-    if (!content || isSending) {
-      return
-    }
+    if (!content || isSending) return
 
+    cancelRef.current = false
     setIsSending(true)
 
     try {
@@ -252,21 +257,35 @@ function App() {
           setConversationStatus('active')
         }
 
+        const controller = new AbortController()
+        abortRef.current = controller
+
         const response = await fetch(`${apiBase}/conversations/${targetId}/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ content }),
+          signal: controller.signal,
         })
 
         if (!response.ok) {
-          throw new Error('Message send failed')
+          const body = await response.json().catch(() => ({}))
+          const msg =
+            typeof body.message === 'string'
+              ? body.message
+              : Array.isArray(body.message)
+                ? body.message[0]
+                : 'Message send failed'
+
+          setStatusNote(msg)
+          return
         }
 
         await loadMessages(targetId)
         setConversationStatus('active')
         void loadConversations()
+        setStatusNote('Turn recorded')
       } else {
         const userMessage: ChatMessage = {
           id: crypto.randomUUID(),
@@ -283,11 +302,15 @@ function App() {
         }
 
         setMessages((current) => [...current, userMessage, assistantMessage])
+        setStatusNote('Turn recorded')
       }
 
       setDraft('')
-      setStatusNote('Turn recorded')
     } catch {
+      setDraft('')
+
+      if (cancelRef.current) return
+
       setConnectionState('offline')
       setStatusNote('Backend unavailable; staying in local preview mode')
 
@@ -306,7 +329,6 @@ function App() {
       }
 
       setMessages((current) => [...current, userMessage, assistantMessage])
-      setDraft('')
     } finally {
       setIsSending(false)
     }
@@ -346,8 +368,6 @@ function App() {
         onSubmit={handleSubmit}
         promptPresets={promptPresets}
       />
-
-      <NotesPanel onPresetSelect={setDraft} />
 
       <ConfirmDialog
         isOpen={deleteConfirmId !== null}

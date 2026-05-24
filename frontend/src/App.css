@@ -1,7 +1,7 @@
 .app-shell {
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 18rem minmax(0, 1fr) 18rem;
+  grid-template-columns: 18rem minmax(0, 1fr);
   gap: 1.25rem;
   padding: 1.25rem;
   box-sizing: border-box;

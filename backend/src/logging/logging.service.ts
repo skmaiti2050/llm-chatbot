@@ -17,6 +17,7 @@ export type CallModelPayload = {
   provider: string;
   model: string;
   messages: LlmMessage[];
+  maxTokens?: number;
 };
 
 export type CallModelResult = {
@@ -49,6 +50,7 @@ export class LoggingService {
     try {
       const request: LlmRequest = {
         messages: payload.messages,
+        maxTokens: payload.maxTokens,
       };
 
       llmResponse = await this.llmProvider.call(request);

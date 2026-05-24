@@ -59,9 +59,15 @@ export class ChatService {
 
     await this.messageRepository.insert(payload.conversationId, 'user', payload.content);
 
+    const convAfter = await this.conversationRepository.findById(payload.conversationId);
+    if (convAfter && convAfter.status === 'canceled') {
+      throw new BadRequestException('conversation was canceled');
+    }
+
     const history = await this.messageRepository.findByConversationId(payload.conversationId);
     const contextSize = Number(process.env.CONTEXT_WINDOW_SIZE) || 20;
     const recent = history.slice(-contextSize);
+    const maxTokens = Number(process.env.LLM_MAX_TOKENS) || 8192;
 
     const messages: LlmMessage[] = recent.map((msg) => ({
       role: msg.role,
@@ -79,7 +85,13 @@ export class ChatService {
       provider,
       model,
       messages,
+      maxTokens,
     });
+
+    const convFinal = await this.conversationRepository.findById(payload.conversationId);
+    if (convFinal && convFinal.status === 'canceled') {
+      throw new BadRequestException('conversation was canceled during LLM call');
+    }
 
     return this.messageRepository.insert(
       payload.conversationId,

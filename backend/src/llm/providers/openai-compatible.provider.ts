@@ -37,7 +37,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   }
 
   async call(request: LlmRequest): Promise<LlmResponse> {
-    const maxTokens = request.maxTokens ?? 2048;
+    const maxTokens = request.maxTokens ?? 8192;
     const body = {
       model: this.model,
       messages: request.messages,

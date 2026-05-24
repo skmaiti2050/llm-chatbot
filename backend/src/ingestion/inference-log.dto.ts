@@ -1,31 +1,68 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 export type InferenceLogStatus = 'success' | 'error';
 
-export interface InferenceTokenUsage {
+export class InferenceTokenUsage {
+  @ApiPropertyOptional({ description: 'Number of prompt tokens' })
   promptTokens?: number;
+
+  @ApiPropertyOptional({ description: 'Number of completion tokens' })
   completionTokens?: number;
+
+  @ApiPropertyOptional({ description: 'Total tokens used' })
   totalTokens?: number;
 }
 
-export interface CreateInferenceLogDto {
-  sessionId: string;
-  requestId: string;
+export class CreateInferenceLogDto {
+  @ApiProperty({ description: 'Session/conversation identifier' })
+  sessionId!: string;
+
+  @ApiProperty({ description: 'Unique request ID for idempotency' })
+  requestId!: string;
+
+  @ApiPropertyOptional({ description: 'ID of the generated message' })
   messageId?: string;
+
+  @ApiPropertyOptional({ description: 'Trace ID for distributed tracing' })
   traceId?: string;
-  provider: string;
-  model: string;
-  startedAt: string;
+
+  @ApiProperty({ description: 'LLM provider name' })
+  provider!: string;
+
+  @ApiProperty({ description: 'Model name' })
+  model!: string;
+
+  @ApiProperty({ description: 'ISO 8601 start timestamp' })
+  startedAt!: string;
+
+  @ApiPropertyOptional({ description: 'ISO 8601 finish timestamp' })
   finishedAt?: string;
-  latencyMs: number;
-  status: InferenceLogStatus;
+
+  @ApiProperty({ description: 'Latency in milliseconds' })
+  latencyMs!: number;
+
+  @ApiProperty({ description: 'Request status', enum: ['success', 'error'] })
+  status!: InferenceLogStatus;
+
+  @ApiPropertyOptional({ description: 'Preview of input messages' })
   inputPreview?: string;
+
+  @ApiPropertyOptional({ description: 'Preview of model output' })
   outputPreview?: string;
+
+  @ApiPropertyOptional({ description: 'Error message if status is error' })
   errorMessage?: string;
+
+  @ApiPropertyOptional({ description: 'Token usage breakdown', type: InferenceTokenUsage })
   tokenUsage?: InferenceTokenUsage;
 }
 
-export interface InferenceLogRecord extends CreateInferenceLogDto {
-  id: string;
-  createdAt: string;
+export class InferenceLogRecord extends CreateInferenceLogDto {
+  @ApiProperty({ description: 'Log record UUID' })
+  id!: string;
+
+  @ApiProperty({ description: 'ISO 8601 creation timestamp' })
+  createdAt!: string;
 }
 
 export function normalizeInferenceLogInput(

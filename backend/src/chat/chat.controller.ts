@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import type { ConversationRecord, ConversationStatus } from './dto/conversation-record.dto';
 import type { CreateConversationResult } from './dto/create-conversation.dto';
 import type { MessageRecord } from './dto/send-message.dto';
+import { SendMessageDto, UpdateConversationStatusDto } from './dto/send-message.dto';
 
 @Controller('conversations')
 export class ChatController {
@@ -27,9 +28,9 @@ export class ChatController {
   @Patch(':id')
   async updateConversationStatus(
     @Param('id') id: string,
-    @Body('status') status: ConversationStatus,
+    @Body() dto: UpdateConversationStatusDto,
   ): Promise<ConversationRecord> {
-    return this.chatService.updateConversationStatus(id, status);
+    return this.chatService.updateConversationStatus(id, dto.status as ConversationStatus);
   }
 
   @Get(':id/messages')
@@ -40,11 +41,11 @@ export class ChatController {
   @Post(':id/messages')
   async sendMessage(
     @Param('id') id: string,
-    @Body('content') content: string,
+    @Body(new ValidationPipe({ whitelist: true })) dto: SendMessageDto,
   ): Promise<MessageRecord> {
     return this.chatService.sendMessage({
       conversationId: id,
-      content,
+      content: dto.content,
     });
   }
 }

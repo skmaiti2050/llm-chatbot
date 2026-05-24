@@ -7,6 +7,7 @@ import { PrismaInferenceLogRepository } from '../ingestion/prisma-inference-log.
 import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm/llm.interface';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
+import { OpenRedaction } from 'openredaction';
 
 export type CallModelPayload = {
   sessionId: string;
@@ -29,6 +30,28 @@ const PREVIEW_MAX_LENGTH = 500;
 
 @Injectable()
 export class LoggingService {
+  private readonly redactor = new OpenRedaction({
+    customPatterns: [
+      {
+        type: 'API_KEY',
+        regex: /\b(sk-[a-zA-Z0-9-]{20,}|sk-ant-[a-zA-Z0-9-_]{20,}|ghp_[a-zA-Z0-9]{36,})\b/gi,
+        priority: 10,
+        placeholder: '[API_KEY]',
+      },
+      {
+        type: 'CREDENTIALS',
+        regex: /\b(bearer|api[_-]?key|secret|password)\s*[:=]\s*[a-zA-Z0-9_\-\.]{10,}\b/gi,
+        priority: 10,
+        placeholder: '[REDACTED_CREDENTIALS]',
+      }
+    ]
+  });
+
+  private async redactText(text: string): Promise<string> {
+    const result = await this.redactor.detect(text);
+    return result.redacted;
+  }
+
   constructor(
     @Inject('LlmProvider') private readonly llmProvider: LlmProvider,
     @Optional() @InjectQueue('inference-logs') private readonly logsQueue: Queue | null,
@@ -54,7 +77,8 @@ export class LoggingService {
     const requestId = payload.requestId ?? randomUUID();
     const startedAt = new Date();
 
-    const inputPreview = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, PREVIEW_MAX_LENGTH);
+    const inputRaw = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+    const inputPreview = (await this.redactText(inputRaw)).slice(0, PREVIEW_MAX_LENGTH);
 
     let llmResponse: LlmResponse;
     let status: 'success' | 'error' = 'success';
@@ -93,7 +117,7 @@ export class LoggingService {
       latencyMs,
       status,
       inputPreview,
-      outputPreview: llmResponse.text.slice(0, PREVIEW_MAX_LENGTH),
+      outputPreview: (await this.redactText(llmResponse.text)).slice(0, PREVIEW_MAX_LENGTH),
       errorMessage,
       tokenUsage: llmResponse.tokenUsage,
     };
@@ -150,7 +174,8 @@ export class LoggingService {
 
     const finishedAt = new Date();
     const latencyMs = finishedAt.getTime() - startedAt.getTime();
-    const inputPreview = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, PREVIEW_MAX_LENGTH);
+    const inputRaw = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+    const inputPreview = (await this.redactText(inputRaw)).slice(0, PREVIEW_MAX_LENGTH);
 
     const status = errorMessage ? 'error' : 'success';
     const log: CreateInferenceLogDto = {
@@ -165,7 +190,7 @@ export class LoggingService {
       latencyMs,
       status,
       inputPreview,
-      outputPreview: fullText.slice(0, PREVIEW_MAX_LENGTH),
+      outputPreview: (await this.redactText(fullText)).slice(0, PREVIEW_MAX_LENGTH),
       errorMessage,
     };
 

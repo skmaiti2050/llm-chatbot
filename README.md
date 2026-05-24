@@ -153,8 +153,6 @@ Indexes: `(sessionId, startedAt)`, `(messageId)`, `(createdAt)`.
 ## What to Improve
 
 - **Advanced multi-provider routing** - add automatic failover, retry logic, and load balancing across providers
-- **Metrics dashboard** - real-time latency, throughput, error rate charts (Prometheus + Grafana)
-- **PII redaction** - strip emails, phone numbers, keys from log previews
 - **Batch ingestion** - buffer logs and flush in batches instead of one-at-a-time writes
 - **Health check on queue depth** - alert if logs pile up
 - **Dedicated ingestion service** - separate process so log pressure never affects chat

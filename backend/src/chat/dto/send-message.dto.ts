@@ -16,9 +16,10 @@ export class SendMessageDto {
 }
 
 export class UpdateConversationStatusDto {
-  @ApiProperty({ description: 'New conversation status', enum: ['active', 'paused', 'canceled'] })
+  @ApiProperty({ description: 'New conversation status', enum: ['active', 'paused', 'cancelled'] })
+  @IsOptional()
   @IsString()
-  status!: 'active' | 'paused' | 'canceled';
+  status!: 'active' | 'paused' | 'cancelled';
 }
 
 export class MessageRecord {

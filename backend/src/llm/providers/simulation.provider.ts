@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { LlmProvider, LlmRequest, LlmResponse } from '../llm.interface';
+import type { LlmProvider, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm.interface';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -25,5 +25,19 @@ export class SimulationProvider implements LlmProvider {
         totalTokens: 0,
       },
     };
+  }
+
+  async *callStreaming(request: LlmRequest): AsyncIterable<LlmStreamChunk> {
+    const lastUserMessage = [...request.messages].reverse().find((m) => m.role === 'user');
+    const fullText = lastUserMessage
+      ? `Simulated reply to: "${lastUserMessage.content.slice(0, 60)}"`
+      : 'Simulated response (no user message found)';
+
+    for (const char of fullText) {
+      await sleep(15);
+      yield { text: char };
+    }
+
+    yield { text: '', finishReason: 'stop' };
   }
 }

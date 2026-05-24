@@ -1,4 +1,4 @@
-import type { SyntheticEvent } from 'react'
+import { useEffect, useRef, type SyntheticEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './Workspace.css'
@@ -33,6 +33,13 @@ export function Workspace({
   onSubmit,
   promptPresets,
 }: WorkspaceProps) {
+  const transcriptRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const el = transcriptRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
+
   return (
     <section className="workspace-pane">
       <header className="workspace-pane__header">
@@ -54,7 +61,7 @@ export function Workspace({
         </div>
       </header>
 
-      <section className="workspace-pane__transcript" aria-label="Conversation transcript">
+      <section className="workspace-pane__transcript" ref={transcriptRef} aria-label="Conversation transcript">
         {messages.length === 0 ? (
           <div className="workspace-pane__empty">
             <h3>The transcript is empty.</h3>
@@ -79,29 +86,24 @@ export function Workspace({
                 <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
               </div>
               {message.role === 'assistant' ? (
-                <div className="workspace-pane__body">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {message.content}
-                  </ReactMarkdown>
-                </div>
+                message.content ? (
+                  <div className="workspace-pane__body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : isSending ? (
+                  <div className="workspace-pane__typing">
+                    <span className="workspace-pane__dot" />
+                    <span className="workspace-pane__dot" />
+                    <span className="workspace-pane__dot" />
+                  </div>
+                ) : null
               ) : (
                 <p>{message.content}</p>
               )}
             </article>
           ))
-        )}
-
-        {isSending && (
-          <article className="workspace-pane__message workspace-pane__message--assistant workspace-pane__message--typing" aria-label="Assistant is typing">
-            <div className="workspace-pane__meta">
-              <span>Assistant</span>
-            </div>
-            <div className="workspace-pane__typing">
-              <span className="workspace-pane__dot" />
-              <span className="workspace-pane__dot" />
-              <span className="workspace-pane__dot" />
-            </div>
-          </article>
         )}
       </section>
 

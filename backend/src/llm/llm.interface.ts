@@ -19,6 +19,12 @@ export interface LlmResponse {
   model: string;
 }
 
+export interface LlmStreamChunk {
+  text: string;
+  finishReason?: 'stop' | 'length';
+}
+
 export interface LlmProvider {
   call(request: LlmRequest): Promise<LlmResponse>;
+  callStreaming(request: LlmRequest): AsyncIterable<LlmStreamChunk>;
 }

@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Res, ValidationPipe } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { ConversationRecord } from './dto/conversation-record.dto';
@@ -79,5 +80,35 @@ export class ChatController {
       conversationId: id,
       content: dto.content,
     });
+  }
+
+  @Post(':id/messages/stream')
+  @ApiOperation({ summary: 'Send a message and stream AI reply' })
+  @ApiParam({ name: 'id', description: 'Conversation UUID' })
+  async sendMessageStream(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true })) dto: SendMessageDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    try {
+      for await (const chunk of this.chatService.sendMessageStream({
+        conversationId: id,
+        content: dto.content,
+      })) {
+        if (res.destroyed) return;
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+    } catch (err) {
+      if (res.destroyed) return;
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      res.write(`data: ${JSON.stringify({ text: '', error: message, finishReason: 'stop' })}\n\n`);
+    } finally {
+      if (!res.destroyed) res.end();
+    }
   }
 }

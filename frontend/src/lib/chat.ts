@@ -7,14 +7,14 @@ export type ChatMessage = {
   createdAt: string
 }
 
-export type ConversationStatus = 'active' | 'paused' | 'canceled'
+export type ConversationStatus = 'active' | 'paused' | 'cancelled'
 
 export type ConversationSummary = {
   id: string
   status: ConversationStatus
   createdAt: string
   updatedAt: string
-  canceledAt?: string
+  cancelledAt?: string
 }
 
 export type ConnectionState = 'booting' | 'online' | 'offline'

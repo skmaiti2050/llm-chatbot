@@ -29,8 +29,8 @@ export class PrismaConversationRepository {
   async updateStatus(id: string, status: ConversationStatus): Promise<ConversationRecord | null> {
     const data: Prisma.ConversationUpdateInput = { status };
 
-    if (status === 'canceled') {
-      data.canceledAt = new Date();
+    if (status === 'cancelled') {
+      data.cancelledAt = new Date();
     }
 
     try {
@@ -55,7 +55,7 @@ function mapConversation(record: Conversation): ConversationRecord {
     status: record.status as ConversationStatus,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
-    canceledAt: record.canceledAt?.toISOString() ?? undefined,
+    cancelledAt: record.cancelledAt?.toISOString() ?? undefined,
     metadata: (record.metadata as Record<string, unknown> | undefined) ?? undefined,
   };
 }

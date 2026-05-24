@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateInferenceLogDto } from '../ingestion/inference-log.dto';
-import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse } from '../llm/llm.interface';
+import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm/llm.interface';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
@@ -90,6 +90,56 @@ export class LoggingService {
       latencyMs,
       tokenUsage: llmResponse.tokenUsage,
     };
+  }
+
+  async *callModelAndLogStreaming(payload: CallModelPayload): AsyncIterable<LlmStreamChunk> {
+    const requestId = payload.requestId ?? randomUUID();
+    const startedAt = new Date();
+    let fullText = '';
+    let finalFinishReason: 'stop' | 'length' | undefined;
+    let errorMessage: string | undefined;
+
+    try {
+      const request: LlmRequest = {
+        messages: payload.messages,
+        maxTokens: payload.maxTokens,
+      };
+
+      for await (const chunk of this.llmProvider.callStreaming(request)) {
+        if (chunk.finishReason) {
+          finalFinishReason = chunk.finishReason;
+        } else {
+          fullText += chunk.text;
+        }
+        yield chunk;
+      }
+    } catch (err) {
+      errorMessage = err instanceof Error ? err.message : String(err);
+      fullText = `LLM call failed: ${errorMessage}`;
+      yield { text: fullText, finishReason: 'stop' };
+    }
+
+    const finishedAt = new Date();
+    const latencyMs = finishedAt.getTime() - startedAt.getTime();
+    const inputPreview = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, PREVIEW_MAX_LENGTH);
+
+    const log: CreateInferenceLogDto = {
+      sessionId: payload.sessionId,
+      requestId,
+      messageId: payload.messageId,
+      traceId: payload.traceId,
+      provider: payload.provider,
+      model: payload.model,
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      latencyMs,
+      status: errorMessage ? 'error' : 'success',
+      inputPreview,
+      outputPreview: fullText.slice(0, PREVIEW_MAX_LENGTH),
+      errorMessage,
+    };
+
+    void this.sendWithRetry(log, 3, 200);
   }
 
   private async sendWithRetry(payload: CreateInferenceLogDto, retries: number, backoffMs: number): Promise<void> {

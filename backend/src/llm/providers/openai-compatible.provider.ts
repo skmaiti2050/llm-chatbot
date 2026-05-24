@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { LlmProvider, LlmRequest, LlmResponse } from '../llm.interface';
+import type { LlmProvider, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm.interface';
 
 type OpenAiChatMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -21,6 +21,18 @@ type OpenAiResponse = {
   id: string;
   model: string;
   choices: OpenAiChoice[];
+  usage?: OpenAiUsage;
+};
+
+type OpenAiStreamChoice = {
+  delta: { content?: string };
+  finish_reason: string | null;
+};
+
+type OpenAiStreamChunk = {
+  id: string;
+  model: string;
+  choices: OpenAiStreamChoice[];
   usage?: OpenAiUsage;
 };
 
@@ -81,5 +93,73 @@ export class OpenAiCompatibleProvider implements LlmProvider {
           }
         : undefined,
     };
+  }
+
+  async *callStreaming(request: LlmRequest): AsyncIterable<LlmStreamChunk> {
+    const maxTokens = request.maxTokens ?? 8192;
+    const body = {
+      model: this.model,
+      messages: request.messages,
+      max_tokens: maxTokens,
+      temperature: request.temperature ?? 0.7,
+      stream: true,
+    };
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'unknown error');
+      throw new Error(`LLM API error ${response.status}: ${errorText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('LLM response body is not readable');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+        const payload = trimmed.slice(6);
+        if (payload === '[DONE]') return;
+
+        try {
+          const chunk = JSON.parse(payload) as OpenAiStreamChunk;
+          const choice = chunk.choices?.[0];
+          if (!choice) continue;
+
+          const text = choice.delta?.content ?? '';
+          if (text) {
+            yield { text };
+          }
+
+          if (choice.finish_reason === 'stop' || choice.finish_reason === 'length') {
+            if (choice.finish_reason === 'length') {
+              console.warn(`LLM response truncated (finish_reason=length). Current max_tokens: ${maxTokens}.`);
+            }
+            yield { text: '', finishReason: choice.finish_reason };
+            return;
+          }
+        } catch {
+        }
+      }
+    }
   }
 }

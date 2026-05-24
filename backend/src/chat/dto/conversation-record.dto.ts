@@ -1,22 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export type ConversationStatus = 'active' | 'paused' | 'canceled';
+export type ConversationStatus = 'active' | 'paused' | 'cancelled';
 
 export class ConversationRecord {
   @ApiProperty({ description: 'Conversation UUID' })
   id!: string;
 
-  @ApiProperty({ description: 'Conversation status', enum: ['active', 'paused', 'canceled'] })
+  @ApiProperty({ description: 'Conversation status', enum: ['active', 'paused', 'cancelled'] })
   status!: ConversationStatus;
 
-  @ApiProperty({ description: 'ISO 8601 creation timestamp' })
+  @ApiProperty({ description: 'Creation timestamp' })
   createdAt!: string;
 
-  @ApiProperty({ description: 'ISO 8601 last update timestamp' })
+  @ApiProperty({ description: 'Last update timestamp' })
   updatedAt!: string;
 
-  @ApiPropertyOptional({ description: 'ISO 8601 cancellation timestamp' })
-  canceledAt?: string;
+  @ApiProperty({ description: 'Cancellation timestamp' })
+  cancelledAt?: string;
 
   @ApiPropertyOptional({ description: 'Arbitrary metadata' })
   metadata?: Record<string, unknown>;

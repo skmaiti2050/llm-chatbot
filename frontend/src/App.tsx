@@ -236,10 +236,30 @@ function App() {
     if (!content || isSending) return
 
     cancelRef.current = false
-    setIsSending(true)
+    setDraft('')
 
-    try {
-      if (connectionState === 'online') {
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content,
+      createdAt: new Date().toISOString(),
+    }
+
+    const assistantId = crypto.randomUUID()
+    const assistantMessage: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date().toISOString(),
+    }
+
+    setMessages((current) => [...current, userMessage, assistantMessage])
+
+    if (connectionState === 'online') {
+      setIsSending(true)
+      setStatusNote('Waiting for response…')
+
+      try {
         let targetId = conversationId
 
         if (!targetId) {
@@ -260,11 +280,9 @@ function App() {
         const controller = new AbortController()
         abortRef.current = controller
 
-        const response = await fetch(`${apiBase}/conversations/${targetId}/messages`, {
+        const response = await fetch(`${apiBase}/conversations/${targetId}/messages/stream`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content }),
           signal: controller.signal,
         })
@@ -279,58 +297,68 @@ function App() {
                 : 'Message send failed'
 
           setStatusNote(msg)
+          setMessages((current) => current.filter((m) => m.id !== assistantId))
           return
         }
 
-        await loadMessages(targetId)
-        setConversationStatus('active')
+        const reader = response.body?.getReader()
+        if (!reader) throw new Error('No response body')
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || !trimmed.startsWith('data: ')) continue
+
+            const payload = trimmed.slice(6)
+            const chunk = JSON.parse(payload)
+
+            if (chunk.finishReason) {
+              setStatusNote('Turn recorded')
+            } else if (chunk.text) {
+              setMessages((current) =>
+                current.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: m.content + chunk.text }
+                    : m,
+                ),
+              )
+            }
+          }
+        }
+
         void loadConversations()
+      } catch {
+        if (cancelRef.current) return
+        setConnectionState('offline')
+        setStatusNote('Backend unavailable; staying in local preview mode')
+      } finally {
+        setIsSending(false)
+      }
+    } else {
+      setIsSending(true)
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        const reply = createLocalReply(content)
+        setMessages((current) =>
+          current.map((m) =>
+            m.id === assistantId ? { ...m, content: reply } : m,
+          ),
+        )
         setStatusNote('Turn recorded')
-      } else {
-        const userMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'user',
-          content,
-          createdAt: new Date().toISOString(),
-        }
-
-        const assistantMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: createLocalReply(content),
-          createdAt: new Date().toISOString(),
-        }
-
-        setMessages((current) => [...current, userMessage, assistantMessage])
-        setStatusNote('Turn recorded')
+      } finally {
+        setIsSending(false)
       }
-
-      setDraft('')
-    } catch {
-      setDraft('')
-
-      if (cancelRef.current) return
-
-      setConnectionState('offline')
-      setStatusNote('Backend unavailable; staying in local preview mode')
-
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content,
-        createdAt: new Date().toISOString(),
-      }
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: createLocalReply(content),
-        createdAt: new Date().toISOString(),
-      }
-
-      setMessages((current) => [...current, userMessage, assistantMessage])
-    } finally {
-      setIsSending(false)
     }
   }
 

@@ -14,7 +14,7 @@ enum InferenceLogStatus {
 enum ConversationStatus {
   active
   paused
-  canceled
+  cancelled
 }
 
 enum MessageRole {
@@ -27,7 +27,7 @@ model Conversation {
   status      ConversationStatus @default(active)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
-  canceledAt  DateTime?
+  cancelledAt DateTime?
   metadata    Json?
 
   messages    Message[]

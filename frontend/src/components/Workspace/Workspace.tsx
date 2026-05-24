@@ -1,12 +1,14 @@
 import type { SyntheticEvent } from 'react'
 import './Workspace.css'
-import { formatTime, type ChatMessage } from '../../lib/chat'
+import { formatTime, type ChatMessage, type ConversationStatus } from '../../lib/chat'
 
 type WorkspaceProps = {
   apiBase: string
+  conversationStatus: ConversationStatus
   draft: string
   isSending: boolean
   messages: ChatMessage[]
+  onCancelConversation: () => void
   onDraftChange: (value: string) => void
   onNewSession: () => void
   onPresetSelect: (value: string) => void
@@ -16,9 +18,11 @@ type WorkspaceProps = {
 
 export function Workspace({
   apiBase,
+  conversationStatus,
   draft,
   isSending,
   messages,
+  onCancelConversation,
   onDraftChange,
   onNewSession,
   onPresetSelect,
@@ -34,6 +38,11 @@ export function Workspace({
         </div>
 
         <div className="workspace-pane__actions">
+          {conversationStatus === 'active' && (
+            <button className="workspace-pane__button workspace-pane__button--cancel" type="button" onClick={onCancelConversation}>
+              Cancel
+            </button>
+          )}
           <button className="workspace-pane__button workspace-pane__button--ghost" type="button" onClick={onNewSession}>
             New session
           </button>

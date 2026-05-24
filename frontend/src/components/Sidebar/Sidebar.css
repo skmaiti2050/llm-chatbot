@@ -73,6 +73,112 @@
   box-shadow: inset 0 0 0 1px rgba(23, 64, 96, 0.08);
 }
 
+.sidebar-pane__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-pane__list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-pane__new-btn {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #f8f6f0;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.sidebar-pane__list-empty {
+  margin: 0.5rem 0 !important;
+  font-size: 0.85rem !important;
+  font-style: italic;
+}
+
+.sidebar-pane__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-pane__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.58);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.sidebar-pane__item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar-pane__item--active {
+  border-color: var(--accent);
+  background: rgba(18, 68, 86, 0.08);
+  cursor: default;
+}
+
+.sidebar-pane__item-id {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 500;
+}
+
+.sidebar-pane__item-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.sidebar-pane__item-badge--active {
+  background: rgba(25, 99, 80, 0.1);
+  color: rgb(25, 99, 80);
+  border-color: rgba(25, 99, 80, 0.2);
+}
+
+.sidebar-pane__item-badge--paused {
+  background: rgba(138, 109, 41, 0.1);
+  color: rgb(138, 109, 41);
+  border-color: rgba(138, 109, 41, 0.2);
+}
+
+.sidebar-pane__item-badge--canceled {
+  background: rgba(138, 74, 41, 0.1);
+  color: rgb(138, 74, 41);
+  border-color: rgba(138, 74, 41, 0.2);
+}
+
+.sidebar-pane__item-time {
+  font-size: 0.7rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 .sidebar-pane__metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

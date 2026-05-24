@@ -43,6 +43,10 @@ export class PrismaConversationRepository {
       return null;
     }
   }
+
+  async delete(id: string): Promise<void> {
+    await this.prismaService.conversation.delete({ where: { id } });
+  }
 }
 
 function mapConversation(record: Conversation): ConversationRecord {

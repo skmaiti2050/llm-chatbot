@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, ValidationPipe } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { ConversationRecord } from './dto/conversation-record.dto';
@@ -45,6 +45,16 @@ export class ChatController {
     @Body() dto: UpdateConversationStatusDto,
   ): Promise<ConversationRecord> {
     return this.chatService.updateConversationStatus(id, dto.status as any);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a conversation and its messages' })
+  @ApiParam({ name: 'id', description: 'Conversation UUID' })
+  @ApiResponse({ status: 204, description: 'Conversation deleted' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
+  async deleteConversation(@Param('id') id: string): Promise<void> {
+    await this.chatService.deleteConversation(id);
   }
 
   @Get(':id/messages')

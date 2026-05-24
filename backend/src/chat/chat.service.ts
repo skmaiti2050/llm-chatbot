@@ -36,6 +36,12 @@ export class ChatService {
     return record;
   }
 
+  async deleteConversation(id: string): Promise<void> {
+    const record = await this.conversationRepository.findById(id);
+    if (!record) throw new NotFoundException('conversation not found');
+    await this.conversationRepository.delete(id);
+  }
+
   async listMessages(conversationId: string): Promise<MessageRecord[]> {
     const conv = await this.conversationRepository.findById(conversationId);
     if (!conv) throw new NotFoundException('conversation not found');

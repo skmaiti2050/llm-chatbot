@@ -1,20 +1,28 @@
 import './Sidebar.css'
-import { formatTime, shortId, type ConnectionState } from '../../lib/chat'
+import { formatTime, shortId, type ConnectionState, type ConversationSummary } from '../../lib/chat'
 
 type SidebarProps = {
+  activeConversationId: string
   assistantCount: number
   connectionState: ConnectionState
-  conversationId: string
+  conversations: ConversationSummary[]
+  isLoadingConversations: boolean
   lastUpdate?: string
+  onNewConversation: () => void
+  onSelectConversation: (id: string) => void
   statusNote: string
   userCount: number
 }
 
 export function Sidebar({
+  activeConversationId,
   assistantCount,
   connectionState,
-  conversationId,
+  conversations,
+  isLoadingConversations,
   lastUpdate,
+  onNewConversation,
+  onSelectConversation,
   statusNote,
   userCount,
 }: SidebarProps) {
@@ -40,10 +48,52 @@ export function Sidebar({
         <p>{statusNote}</p>
       </section>
 
+      <section className="sidebar-pane__list">
+        <div className="sidebar-pane__list-header">
+          <span className="sidebar-pane__label">History</span>
+          {connectionState === 'online' && (
+            <button className="sidebar-pane__new-btn" type="button" onClick={onNewConversation}>
+              + New
+            </button>
+          )}
+        </div>
+
+        {isLoadingConversations && <p className="sidebar-pane__list-empty">Loading…</p>}
+
+        {!isLoadingConversations && conversations.length === 0 && connectionState === 'online' && (
+          <p className="sidebar-pane__list-empty">No conversations yet.</p>
+        )}
+
+        {connectionState === 'offline' && (
+          <p className="sidebar-pane__list-empty">Unavailable offline.</p>
+        )}
+
+        {conversations.length > 0 && (
+          <ul className="sidebar-pane__items">
+            {conversations.map((conv) => (
+              <li key={conv.id}>
+                <button
+                  className={`sidebar-pane__item${conv.id === activeConversationId ? ' sidebar-pane__item--active' : ''}`}
+                  type="button"
+                  onClick={() => onSelectConversation(conv.id)}
+                  disabled={conv.id === activeConversationId}
+                >
+                  <span className="sidebar-pane__item-id">{shortId(conv.id)}</span>
+                  <span className={`sidebar-pane__item-badge sidebar-pane__item-badge--${conv.status}`}>
+                    {conv.status}
+                  </span>
+                  <time className="sidebar-pane__item-time">{formatTime(conv.createdAt)}</time>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <dl className="sidebar-pane__metrics">
         <div>
           <dt>Conversation</dt>
-          <dd>{conversationId ? shortId(conversationId) : 'pending'}</dd>
+          <dd>{activeConversationId ? shortId(activeConversationId) : 'pending'}</dd>
         </div>
         <div>
           <dt>Turns</dt>

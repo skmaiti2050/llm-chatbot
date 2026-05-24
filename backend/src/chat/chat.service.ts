@@ -2,52 +2,49 @@ import { randomUUID } from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { LoggingService } from '../logging/logging.service';
 import { SendMessageDto, MessageRecord } from './dto/send-message.dto';
-
-type Conversation = {
-  id: string;
-  status: 'active' | 'paused' | 'canceled';
-  messages: MessageRecord[];
-};
+import { ConversationRecord, ConversationStatus } from './dto/conversation-record.dto';
+import { PrismaConversationRepository } from './repositories/prisma-conversation.repository';
+import { PrismaMessageRepository } from './repositories/prisma-message.repository';
 
 type ModelCallResult = Awaited<ReturnType<LoggingService['callModelAndLog']>>;
 
 @Injectable()
 export class ChatService {
-  private conversations = new Map<string, Conversation>();
+  constructor(
+    private readonly loggingService: LoggingService,
+    private readonly conversationRepository: PrismaConversationRepository,
+    private readonly messageRepository: PrismaMessageRepository,
+  ) {}
 
-  constructor(private readonly loggingService: LoggingService) {}
-
-  private createId(): string {
-    return randomUUID();
+  async createConversation(): Promise<string> {
+    const record = await this.conversationRepository.insert();
+    return record.id;
   }
 
-  private createMessage(role: MessageRecord['role'], content: string): MessageRecord {
-    return {
-      id: this.createId(),
-      role,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+  async listConversations(): Promise<ConversationRecord[]> {
+    return this.conversationRepository.findAll();
   }
 
-  createConversation(): string {
-    const id = this.createId();
-    this.conversations.set(id, {
-      id,
-      status: 'active',
-      messages: [],
-    });
-    return id;
+  async getConversation(id: string): Promise<ConversationRecord> {
+    const record = await this.conversationRepository.findById(id);
+    if (!record) throw new NotFoundException('conversation not found');
+    return record;
   }
 
-  listMessages(conversationId: string): MessageRecord[] {
-    const conv = this.conversations.get(conversationId);
+  async updateConversationStatus(id: string, status: ConversationStatus): Promise<ConversationRecord> {
+    const record = await this.conversationRepository.updateStatus(id, status);
+    if (!record) throw new NotFoundException('conversation not found');
+    return record;
+  }
+
+  async listMessages(conversationId: string): Promise<MessageRecord[]> {
+    const conv = await this.conversationRepository.findById(conversationId);
     if (!conv) throw new NotFoundException('conversation not found');
-    return [...conv.messages];
+    return this.messageRepository.findByConversationId(conversationId);
   }
 
   async sendMessage(payload: SendMessageDto): Promise<MessageRecord> {
-    const conv = this.conversations.get(payload.conversationId);
+    const conv = await this.conversationRepository.findById(payload.conversationId);
     if (!conv) throw new NotFoundException('conversation not found');
 
     const content = payload.content.trim();
@@ -55,20 +52,20 @@ export class ChatService {
       throw new BadRequestException('content is required');
     }
 
-    const userMsg = this.createMessage('user', payload.content);
-    conv.messages.push(userMsg);
+    await this.messageRepository.insert(payload.conversationId, 'user', payload.content);
 
     const result: ModelCallResult = await this.loggingService.callModelAndLog({
       sessionId: payload.conversationId,
-      requestId: this.createId(),
+      requestId: randomUUID(),
       provider: process.env.LLM_PROVIDER ?? 'local-sim',
       model: process.env.LLM_MODEL ?? 'sim-model',
       inputPreview: payload.content,
     });
 
-    const assistantMsg = this.createMessage('assistant', result.text ?? 'no response');
-    conv.messages.push(assistantMsg);
-
-    return assistantMsg;
+    return this.messageRepository.insert(
+      payload.conversationId,
+      'assistant',
+      result.text ?? 'no response',
+    );
   }
 }

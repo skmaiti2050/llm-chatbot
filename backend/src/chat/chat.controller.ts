@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import type { ConversationRecord, ConversationStatus } from './dto/conversation-record.dto';
 import type { CreateConversationResult } from './dto/create-conversation.dto';
 import type { MessageRecord } from './dto/send-message.dto';
 
@@ -8,13 +9,31 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
-  createConversation(): CreateConversationResult {
-    const id = this.chatService.createConversation();
+  async createConversation(): Promise<CreateConversationResult> {
+    const id = await this.chatService.createConversation();
     return { conversationId: id };
   }
 
+  @Get()
+  async listConversations(): Promise<ConversationRecord[]> {
+    return this.chatService.listConversations();
+  }
+
+  @Get(':id')
+  async getConversation(@Param('id') id: string): Promise<ConversationRecord> {
+    return this.chatService.getConversation(id);
+  }
+
+  @Patch(':id')
+  async updateConversationStatus(
+    @Param('id') id: string,
+    @Body('status') status: ConversationStatus,
+  ): Promise<ConversationRecord> {
+    return this.chatService.updateConversationStatus(id, status);
+  }
+
   @Get(':id/messages')
-  listMessages(@Param('id') id: string): MessageRecord[] {
+  async listMessages(@Param('id') id: string): Promise<MessageRecord[]> {
     return this.chatService.listMessages(id);
   }
 

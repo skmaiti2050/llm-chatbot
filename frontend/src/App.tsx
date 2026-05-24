@@ -323,6 +323,15 @@ function App() {
             const chunk = JSON.parse(payload)
 
             if (chunk.finishReason) {
+              if (chunk.text) {
+                setMessages((current) =>
+                  current.map((m) =>
+                    m.id === assistantId
+                      ? { ...m, content: chunk.text }
+                      : m,
+                  ),
+                )
+              }
               setStatusNote('Turn recorded')
             } else if (chunk.text) {
               setMessages((current) =>

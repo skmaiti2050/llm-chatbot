@@ -1,59 +1,93 @@
+import { IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export type InferenceLogStatus = 'success' | 'error';
 
 export class InferenceTokenUsage {
   @ApiPropertyOptional({ description: 'Number of prompt tokens' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   promptTokens?: number;
 
   @ApiPropertyOptional({ description: 'Number of completion tokens' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   completionTokens?: number;
 
   @ApiPropertyOptional({ description: 'Total tokens used' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   totalTokens?: number;
 }
 
 export class CreateInferenceLogDto {
   @ApiProperty({ description: 'Session/conversation identifier' })
+  @IsString()
   sessionId!: string;
 
   @ApiProperty({ description: 'Unique request ID for idempotency' })
+  @IsString()
   requestId!: string;
 
   @ApiPropertyOptional({ description: 'ID of the generated message' })
+  @IsOptional()
+  @IsString()
   messageId?: string;
 
   @ApiPropertyOptional({ description: 'Trace ID for distributed tracing' })
+  @IsOptional()
+  @IsString()
   traceId?: string;
 
   @ApiProperty({ description: 'LLM provider name' })
+  @IsString()
   provider!: string;
 
   @ApiProperty({ description: 'Model name' })
+  @IsString()
   model!: string;
 
-  @ApiProperty({ description: 'ISO 8601 start timestamp' })
+  @ApiProperty({ description: 'Start timestamp' })
+  @IsString()
   startedAt!: string;
 
-  @ApiPropertyOptional({ description: 'ISO 8601 finish timestamp' })
+  @ApiPropertyOptional({ description: 'Finish timestamp' })
+  @IsOptional()
+  @IsString()
   finishedAt?: string;
 
   @ApiProperty({ description: 'Latency in milliseconds' })
+  @IsInt()
+  @Min(0)
   latencyMs!: number;
 
   @ApiProperty({ description: 'Request status', enum: ['success', 'error'] })
+  @IsIn(['success', 'error'])
   status!: InferenceLogStatus;
 
   @ApiPropertyOptional({ description: 'Preview of input messages' })
+  @IsOptional()
+  @IsString()
   inputPreview?: string;
 
   @ApiPropertyOptional({ description: 'Preview of model output' })
+  @IsOptional()
+  @IsString()
   outputPreview?: string;
 
   @ApiPropertyOptional({ description: 'Error message if status is error' })
+  @IsOptional()
+  @IsString()
   errorMessage?: string;
 
   @ApiPropertyOptional({ description: 'Token usage breakdown', type: InferenceTokenUsage })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InferenceTokenUsage)
   tokenUsage?: InferenceTokenUsage;
 }
 

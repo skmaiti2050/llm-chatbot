@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { LlmProvider, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm.interface';
 
+function errorLabel(status: number): string {
+  if (status === 401) return 'Authentication failed — check API key';
+  if (status === 429) return 'Rate limited — try again later';
+  if (status >= 500) return `Provider error (${status})`;
+  return `Request error (${status})`;
+}
+
 type OpenAiChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -67,8 +74,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown error');
-      throw new Error(`LLM API error ${response.status}: ${errorText}`);
+      const reason = errorLabel(response.status);
+      throw new Error(reason);
     }
 
     const data = (await response.json()) as OpenAiResponse;
@@ -115,8 +122,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown error');
-      throw new Error(`LLM API error ${response.status}: ${errorText}`);
+      const reason = errorLabel(response.status);
+      throw new Error(reason);
     }
 
     const reader = response.body?.getReader();

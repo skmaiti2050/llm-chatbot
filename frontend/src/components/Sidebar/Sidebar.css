@@ -1,0 +1,101 @@
+.sidebar-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1.75rem;
+  background: rgba(250, 246, 239, 0.82);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.sidebar-pane__brand {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sidebar-pane__eyebrow,
+.sidebar-pane__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.sidebar-pane h1 {
+  margin: 0.65rem 0 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 0.96;
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  letter-spacing: -0.07em;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.sidebar-pane p,
+.sidebar-pane__status p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.sidebar-pane__status {
+  border-radius: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 240, 230, 0.8));
+}
+
+.sidebar-pane__status strong {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.sidebar-pane__status--online {
+  box-shadow: inset 0 0 0 1px rgba(25, 99, 80, 0.08);
+}
+
+.sidebar-pane__status--offline {
+  box-shadow: inset 0 0 0 1px rgba(138, 74, 41, 0.08);
+}
+
+.sidebar-pane__status--booting {
+  box-shadow: inset 0 0 0 1px rgba(23, 64, 96, 0.08);
+}
+
+.sidebar-pane__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.sidebar-pane__metrics div {
+  padding: 0.85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.sidebar-pane__metrics dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.sidebar-pane__metrics dd {
+  margin: 0.35rem 0 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.08rem;
+}

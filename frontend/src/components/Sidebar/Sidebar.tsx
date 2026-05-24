@@ -121,7 +121,7 @@ export function Sidebar({
         </div>
         <div>
           <dt>Last update</dt>
-          <dd>{lastUpdate ? formatTime(lastUpdate) : '—'}</dd>
+          <dd>{lastUpdate ? formatTime(lastUpdate) : '-'}</dd>
         </div>
       </dl>
     </aside>

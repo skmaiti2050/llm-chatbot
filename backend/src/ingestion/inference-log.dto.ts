@@ -133,6 +133,7 @@ export function normalizeInferenceLogInput(
   return {
     sessionId,
     requestId,
+    messageId: normalizeOptionalString(payload.messageId),
     traceId: normalizeOptionalString(payload.traceId),
     provider,
     model,

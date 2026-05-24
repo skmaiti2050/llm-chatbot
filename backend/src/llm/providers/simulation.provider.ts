@@ -7,6 +7,7 @@ function sleep(ms: number) {
 
 @Injectable()
 export class SimulationProvider implements LlmProvider {
+  readonly name = 'simulation';
   async call(request: LlmRequest): Promise<LlmResponse> {
     const simulatedLatency = Math.floor(Math.random() * 200) + 50;
     await sleep(simulatedLatency);

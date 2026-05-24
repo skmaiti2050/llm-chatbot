@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import type { LlmProvider, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm.interface';
 
 function errorLabel(status: number): string {
-  if (status === 401) return 'Authentication failed — check API key';
-  if (status === 429) return 'Rate limited — try again later';
+  if (status === 401) return 'Authentication failed - check API key';
+  if (status === 429) return 'Rate limited - try again later';
   if (status >= 500) return `Provider error (${status})`;
   return `Request error (${status})`;
 }
@@ -45,20 +45,23 @@ type OpenAiStreamChunk = {
 
 @Injectable()
 export class OpenAiCompatibleProvider implements LlmProvider {
+  readonly name = 'openai-compatible';
+
   private baseUrl: string;
   private apiKey: string;
-  private model: string;
+  private defaultModel: string;
 
   constructor() {
     this.baseUrl = process.env.LLM_BASE_URL ?? 'https://api.openai.com/v1';
     this.apiKey = process.env.LLM_API_KEY ?? '';
-    this.model = process.env.LLM_MODEL ?? 'gpt-4o-mini';
+    this.defaultModel = process.env.LLM_MODEL ?? 'gpt-4o-mini';
   }
 
   async call(request: LlmRequest): Promise<LlmResponse> {
+    const model = request.model || this.defaultModel;
     const maxTokens = request.maxTokens ?? 8192;
     const body = {
-      model: this.model,
+      model,
       messages: request.messages,
       max_tokens: maxTokens,
       temperature: request.temperature ?? 0.7,
@@ -103,9 +106,10 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   }
 
   async *callStreaming(request: LlmRequest): AsyncIterable<LlmStreamChunk> {
+    const model = request.model || this.defaultModel;
     const maxTokens = request.maxTokens ?? 8192;
     const body = {
-      model: this.model,
+      model,
       messages: request.messages,
       max_tokens: maxTokens,
       temperature: request.temperature ?? 0.7,

@@ -167,7 +167,7 @@
   border-color: rgba(138, 109, 41, 0.2);
 }
 
-.sidebar-pane__item-badge--canceled {
+.sidebar-pane__item-badge--cancelled {
   background: rgba(138, 74, 41, 0.1);
   color: rgb(138, 74, 41);
   border-color: rgba(138, 74, 41, 0.2);

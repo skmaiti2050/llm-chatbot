@@ -45,7 +45,7 @@ export class ChatController {
     @Param('id') id: string,
     @Body() dto: UpdateConversationStatusDto,
   ): Promise<ConversationRecord> {
-    return this.chatService.updateConversationStatus(id, dto.status as any);
+    return this.chatService.updateConversationStatus(id, dto.status);
   }
 
   @Delete(':id')

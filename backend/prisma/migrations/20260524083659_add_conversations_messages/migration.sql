@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "ConversationStatus" AS ENUM ('active', 'paused', 'canceled');
+CREATE TYPE "ConversationStatus" AS ENUM ('active', 'paused', 'cancelled');
 
 -- CreateEnum
 CREATE TYPE "MessageRole" AS ENUM ('user', 'assistant');
@@ -10,7 +10,7 @@ CREATE TABLE "Conversation" (
     "status" "ConversationStatus" NOT NULL DEFAULT 'active',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "canceledAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
     "metadata" JSONB,
 
     CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")

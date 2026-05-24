@@ -1,44 +1,19 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
-import { Job } from 'bull';
-import { Prisma, PrismaClient } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import * as Bull from 'bull';
 import { CreateInferenceLogDto, normalizeInferenceLogInput } from '../ingestion/inference-log.dto';
+import { PrismaInferenceLogRepository } from '../ingestion/prisma-inference-log.repository';
 
 @Injectable()
 @Processor('inference-logs')
 export class LogsProcessor {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly inferenceLogRepository: PrismaInferenceLogRepository) {}
 
   @Process()
-  async processLog(job: Job<CreateInferenceLogDto>) {
+  async processLog(job: Bull.Job<CreateInferenceLogDto>) {
     const normalized = normalizeInferenceLogInput(job.data);
     if (!normalized) return;
 
-    try {
-      await this.prisma.inferenceLog.create({
-        data: {
-          sessionId: normalized.sessionId,
-          requestId: normalized.requestId,
-          messageId: normalized.messageId,
-          traceId: normalized.traceId,
-          provider: normalized.provider,
-          model: normalized.model,
-          startedAt: new Date(normalized.startedAt),
-          finishedAt: normalized.finishedAt ? new Date(normalized.finishedAt) : null,
-          latencyMs: normalized.latencyMs,
-          status: normalized.status,
-          inputPreview: normalized.inputPreview,
-          outputPreview: normalized.outputPreview,
-          errorMessage: normalized.errorMessage,
-          tokenUsage: normalized.tokenUsage as Prisma.InputJsonValue | undefined,
-        },
-      });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        return;
-      }
-      throw err;
-    }
+    await this.inferenceLogRepository.insert(normalized);
   }
 }

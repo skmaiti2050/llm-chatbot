@@ -85,14 +85,14 @@ function App() {
         }
       }
     } catch {
-      // Silently fail — conversations list is best-effort
+      // Silently fail - conversations list is best-effort
     } finally {
       setIsLoadingConversations(false)
     }
   }
 
   async function bootConversation() {
-    // Kept for backward compat — same as createNewConversation
+    // Kept for backward compat - same as createNewConversation
     return createNewConversation()
   }
 
@@ -171,15 +171,15 @@ function App() {
       const response = await fetch(`${apiBase}/conversations/${conversationId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'canceled' }),
+        body: JSON.stringify({ status: 'cancelled' }),
       })
 
       if (!response.ok) {
         throw new Error('Could not cancel conversation')
       }
 
-      setConversationStatus('canceled')
-      setStatusNote('Conversation canceled')
+      setConversationStatus('cancelled')
+      setStatusNote('Conversation cancelled')
       void loadConversations(conversationId)
     } catch {
       setStatusNote('Failed to cancel conversation')

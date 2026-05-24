@@ -7,6 +7,8 @@ export interface LlmRequest {
   messages: LlmMessage[];
   maxTokens?: number;
   temperature?: number;
+  provider?: string;
+  model?: string;
 }
 
 export interface LlmResponse {
@@ -25,6 +27,7 @@ export interface LlmStreamChunk {
 }
 
 export interface LlmProvider {
+  readonly name: string;
   call(request: LlmRequest): Promise<LlmResponse>;
   callStreaming(request: LlmRequest): AsyncIterable<LlmStreamChunk>;
 }

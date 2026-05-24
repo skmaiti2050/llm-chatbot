@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export type MessageRole = 'user' | 'assistant';
@@ -17,8 +17,7 @@ export class SendMessageDto {
 
 export class UpdateConversationStatusDto {
   @ApiProperty({ description: 'New conversation status', enum: ['active', 'paused', 'cancelled'] })
-  @IsOptional()
-  @IsString()
+  @IsIn(['active', 'paused', 'cancelled'])
   status!: 'active' | 'paused' | 'cancelled';
 }
 

@@ -28,7 +28,6 @@ export function Workspace({
   onCancelConversation,
   onDeleteConversation,
   onDraftChange,
-  onNewSession,
   onPresetSelect,
   onSubmit,
   promptPresets,

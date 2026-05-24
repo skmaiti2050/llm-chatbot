@@ -1,27 +1,36 @@
 import { Module } from '@nestjs/common';
 import type { LlmProvider } from './llm.interface';
+import { LlmRouterService } from './llm-router.service';
 import { OpenAiCompatibleProvider } from './providers/openai-compatible.provider';
+import { AnthropicProvider } from './providers/anthropic.provider';
 import { SimulationProvider } from './providers/simulation.provider';
 
 const providerFactory = {
   provide: 'LlmProvider',
-  useFactory: (): LlmProvider => {
-    const configured = process.env.LLM_API_KEY && process.env.LLM_API_KEY.length > 0;
-    if (!configured) {
-      return new SimulationProvider();
-    }
+  useFactory: (
+    router: LlmRouterService,
+    openai: OpenAiCompatibleProvider,
+    anthropic: AnthropicProvider,
+    simulation: SimulationProvider,
+  ): LlmProvider => {
+    const preferred = process.env.LLM_PROVIDER ?? 'openai-compatible';
 
-    const type = process.env.LLM_PROVIDER ?? 'openai-compatible';
-    if (type === 'openai-compatible') {
-      return new OpenAiCompatibleProvider();
-    }
+    router.register(openai);
+    router.register(anthropic);
+    router.register(simulation);
 
-    return new SimulationProvider();
+    const defaultName = ['anthropic', 'openai-compatible', 'simulation'].includes(preferred)
+      ? preferred
+      : 'simulation';
+
+    router.setDefault(defaultName);
+    return router;
   },
+  inject: [LlmRouterService, OpenAiCompatibleProvider, AnthropicProvider, SimulationProvider],
 };
 
 @Module({
-  providers: [providerFactory],
+  providers: [LlmRouterService, OpenAiCompatibleProvider, AnthropicProvider, SimulationProvider, providerFactory],
   exports: ['LlmProvider'],
 })
 export class LlmModule {}

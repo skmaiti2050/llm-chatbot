@@ -2,9 +2,8 @@ import { randomUUID } from 'crypto';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { Prisma } from '@prisma/client';
 import { CreateInferenceLogDto, normalizeInferenceLogInput } from '../ingestion/inference-log.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaInferenceLogRepository } from '../ingestion/prisma-inference-log.repository';
 import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm/llm.interface';
 
 export type CallModelPayload = {
@@ -31,7 +30,7 @@ export class LoggingService {
   constructor(
     @Inject('LlmProvider') private readonly llmProvider: LlmProvider,
     @Optional() @InjectQueue('inference-logs') private readonly logsQueue: Queue | null,
-    private readonly prisma: PrismaService,
+    private readonly inferenceLogRepository: PrismaInferenceLogRepository,
   ) {}
 
   private async persistLog(log: CreateInferenceLogDto): Promise<void> {
@@ -43,31 +42,7 @@ export class LoggingService {
     const normalized = normalizeInferenceLogInput(log);
     if (!normalized) return;
 
-    try {
-      await this.prisma.inferenceLog.create({
-        data: {
-          sessionId: normalized.sessionId,
-          requestId: normalized.requestId,
-          messageId: normalized.messageId,
-          traceId: normalized.traceId,
-          provider: normalized.provider,
-          model: normalized.model,
-          startedAt: new Date(normalized.startedAt),
-          finishedAt: normalized.finishedAt ? new Date(normalized.finishedAt) : null,
-          latencyMs: normalized.latencyMs,
-          status: normalized.status,
-          inputPreview: normalized.inputPreview,
-          outputPreview: normalized.outputPreview,
-          errorMessage: normalized.errorMessage,
-          tokenUsage: normalized.tokenUsage as Prisma.InputJsonValue | undefined,
-        },
-      });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        return;
-      }
-      throw err;
-    }
+    await this.inferenceLogRepository.insert(normalized);
   }
 
   async callModelAndLog(payload: CallModelPayload): Promise<CallModelResult> {
@@ -84,6 +59,8 @@ export class LoggingService {
       const request: LlmRequest = {
         messages: payload.messages,
         maxTokens: payload.maxTokens,
+        provider: payload.provider,
+        model: payload.model,
       };
 
       llmResponse = await this.llmProvider.call(request);
@@ -136,6 +113,8 @@ export class LoggingService {
       const request: LlmRequest = {
         messages: payload.messages,
         maxTokens: payload.maxTokens,
+        provider: payload.provider,
+        model: payload.model,
       };
 
       for await (const chunk of this.llmProvider.callStreaming(request)) {

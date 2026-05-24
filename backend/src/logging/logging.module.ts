@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { LlmModule } from '../llm/llm.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { IngestionModule } from '../ingestion/ingestion.module';
 import { LoggingService } from './logging.service';
 import { LogsProcessor } from './logging.processor';
 
@@ -47,7 +48,7 @@ export class LoggingModule {
 
     return {
       module: LoggingModule,
-      imports: [LlmModule, PrismaModule, ...bullImports],
+      imports: [LlmModule, PrismaModule, IngestionModule, ...bullImports],
       providers,
       exports: [LoggingService],
     };

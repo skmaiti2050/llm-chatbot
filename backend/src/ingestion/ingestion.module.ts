@@ -8,6 +8,6 @@ import { PrismaInferenceLogRepository } from './prisma-inference-log.repository'
   imports: [PrismaModule],
   controllers: [IngestionController],
   providers: [IngestionService, PrismaInferenceLogRepository],
-  exports: [IngestionService],
+  exports: [IngestionService, PrismaInferenceLogRepository],
 })
 export class IngestionModule {}

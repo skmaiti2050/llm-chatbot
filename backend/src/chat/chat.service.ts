@@ -69,10 +69,15 @@ export class ChatService {
     const recent = history.slice(-contextSize);
     const maxTokens = Number(process.env.LLM_MAX_TOKENS) || 8192;
 
-    const messages: LlmMessage[] = recent.map((msg) => ({
-      role: msg.role,
+    const systemPrompt = process.env.SYSTEM_PROMPT;
+    const messages: LlmMessage[] = [];
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
+    messages.push(...recent.map((msg) => ({
+      role: msg.role as LlmMessage['role'],
       content: msg.content,
-    }));
+    })));
 
     const provider = process.env.LLM_PROVIDER || 'openai-compatible';
     const model = process.env.LLM_MODEL || 'gpt-4o-mini';
@@ -125,10 +130,15 @@ export class ChatService {
     const recent = history.slice(-contextSize);
     const maxTokens = Number(process.env.LLM_MAX_TOKENS) || 8192;
 
-    const messages: LlmMessage[] = recent.map((msg) => ({
-      role: msg.role,
+    const systemPrompt = process.env.SYSTEM_PROMPT;
+    const messages: LlmMessage[] = [];
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
+    messages.push(...recent.map((msg) => ({
+      role: msg.role as LlmMessage['role'],
       content: msg.content,
-    }));
+    })));
 
     const provider = process.env.LLM_PROVIDER || 'openai-compatible';
     const model = process.env.LLM_MODEL || 'gpt-4o-mini';

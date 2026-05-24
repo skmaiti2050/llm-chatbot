@@ -1,4 +1,6 @@
 import type { SyntheticEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import './Workspace.css'
 import { formatTime, type ChatMessage, type ConversationStatus } from '../../lib/chat'
 
@@ -72,7 +74,15 @@ export function Workspace({
                 <span>{message.role === 'user' ? 'You' : 'Assistant'}</span>
                 <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
               </div>
-              <p>{message.content}</p>
+              {message.role === 'assistant' ? (
+                <div className="workspace-pane__body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p>{message.content}</p>
+              )}
             </article>
           ))
         )}

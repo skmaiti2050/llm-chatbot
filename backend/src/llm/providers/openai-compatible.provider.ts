@@ -37,10 +37,11 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   }
 
   async call(request: LlmRequest): Promise<LlmResponse> {
+    const maxTokens = request.maxTokens ?? 2048;
     const body = {
       model: this.model,
       messages: request.messages,
-      max_tokens: request.maxTokens ?? 1024,
+      max_tokens: maxTokens,
       temperature: request.temperature ?? 0.7,
     };
 
@@ -63,6 +64,10 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
     if (!choice) {
       throw new Error('LLM returned no choices');
+    }
+
+    if (choice.finish_reason === 'length') {
+      console.warn(`LLM response truncated (finish_reason=length). Current max_tokens: ${maxTokens}. Response length: ${choice.message.content.length} chars`);
     }
 
     return {

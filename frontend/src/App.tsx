@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import './App.css'
 import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog'
@@ -28,9 +28,12 @@ function App() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState('Connecting to the API…')
+  const booted = useRef(false)
 
   useEffect(() => {
-    void bootConversation()
+    if (booted.current) return
+    booted.current = true
+    void initApp()
   }, [])
 
   useEffect(() => {
@@ -87,9 +90,34 @@ function App() {
   }
 
   async function bootConversation() {
-    setConnectionState('booting')
-    setStatusNote('Opening a fresh conversation…')
+    // Kept for backward compat — same as createNewConversation
+    return createNewConversation()
+  }
 
+  async function initApp() {
+    setConnectionState('booting')
+    setStatusNote('Connecting to the API…')
+
+    try {
+      const response = await fetch(`${apiBase}/health`)
+
+      if (!response.ok) {
+        throw new Error('Backend not healthy')
+      }
+
+      setConnectionState('online')
+      setStatusNote('Connected to the backend')
+      await loadConversations()
+    } catch {
+      setConversationId('local-preview')
+      setConversationStatus('active')
+      setMessages(createSeedMessages())
+      setConnectionState('offline')
+      setStatusNote('Running local preview mode')
+    }
+  }
+
+  async function createNewConversation() {
     try {
       const response = await fetch(`${apiBase}/conversations`, {
         method: 'POST',
@@ -107,12 +135,8 @@ function App() {
       setConnectionState('online')
       setStatusNote('Connected to the backend')
     } catch {
-      const fallbackId = 'local-preview'
-      setConversationId(fallbackId)
-      setConversationStatus('active')
-      setMessages(createSeedMessages())
       setConnectionState('offline')
-      setStatusNote('Running local preview mode')
+      setStatusNote('Could not reach the backend')
     }
   }
 
@@ -210,8 +234,25 @@ function App() {
     setIsSending(true)
 
     try {
-      if (connectionState === 'online' && conversationId) {
-        const response = await fetch(`${apiBase}/conversations/${conversationId}/messages`, {
+      if (connectionState === 'online') {
+        let targetId = conversationId
+
+        if (!targetId) {
+          const createRes = await fetch(`${apiBase}/conversations`, {
+            method: 'POST',
+          })
+
+          if (!createRes.ok) {
+            throw new Error('Could not create conversation')
+          }
+
+          const { conversationId: newId } = await createRes.json() as CreateConversationResponse
+          targetId = newId
+          setConversationId(newId)
+          setConversationStatus('active')
+        }
+
+        const response = await fetch(`${apiBase}/conversations/${targetId}/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -223,7 +264,7 @@ function App() {
           throw new Error('Message send failed')
         }
 
-        await loadMessages(conversationId)
+        await loadMessages(targetId)
         setConversationStatus('active')
         void loadConversations()
       } else {

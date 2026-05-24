@@ -1,4 +1,4 @@
-import { IsString, MinLength, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export type MessageRole = 'user' | 'assistant';
@@ -10,6 +10,8 @@ export class SendMessageDto {
   @MaxLength(10000)
   content!: string;
 
+  @ApiPropertyOptional({ description: 'Conversation UUID (set from URL param)' })
+  @IsOptional()
   conversationId!: string;
 }
 

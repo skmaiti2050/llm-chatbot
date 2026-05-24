@@ -8,6 +8,7 @@
   background: rgba(250, 246, 239, 0.82);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
+  overflow-y: auto;
 }
 
 .sidebar-pane__brand {

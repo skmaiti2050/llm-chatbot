@@ -1,12 +1,11 @@
 import { randomUUID } from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { LoggingService } from '../logging/logging.service';
+import { LoggingService, CallModelResult } from '../logging/logging.service';
 import { SendMessageDto, MessageRecord } from './dto/send-message.dto';
 import { ConversationRecord, ConversationStatus } from './dto/conversation-record.dto';
 import { PrismaConversationRepository } from './repositories/prisma-conversation.repository';
 import { PrismaMessageRepository } from './repositories/prisma-message.repository';
-
-type ModelCallResult = Awaited<ReturnType<LoggingService['callModelAndLog']>>;
+import type { LlmMessage } from '../llm/llm.interface';
 
 @Injectable()
 export class ChatService {
@@ -54,18 +53,34 @@ export class ChatService {
 
     await this.messageRepository.insert(payload.conversationId, 'user', payload.content);
 
-    const result: ModelCallResult = await this.loggingService.callModelAndLog({
+    const history = await this.messageRepository.findByConversationId(payload.conversationId);
+    const contextSize = Number(process.env.CONTEXT_WINDOW_SIZE) || 20;
+    const recent = history.slice(-contextSize);
+
+    const messages: LlmMessage[] = recent.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    const provider = process.env.LLM_PROVIDER || 'openai-compatible';
+    const model = process.env.LLM_MODEL || 'gpt-4o-mini';
+    const messageId = randomUUID();
+
+    const result: CallModelResult = await this.loggingService.callModelAndLog({
       sessionId: payload.conversationId,
       requestId: randomUUID(),
-      provider: process.env.LLM_PROVIDER ?? 'local-sim',
-      model: process.env.LLM_MODEL ?? 'sim-model',
-      inputPreview: payload.content,
+      messageId,
+      provider,
+      model,
+      messages,
     });
 
     return this.messageRepository.insert(
       payload.conversationId,
       'assistant',
-      result.text ?? 'no response',
+      result.text,
+      undefined,
+      messageId,
     );
   }
 }

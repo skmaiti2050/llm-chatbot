@@ -12,12 +12,17 @@ export class PrismaMessageRepository {
     role: MessageRole,
     content: string,
     metadata?: Record<string, unknown>,
+    id?: string,
   ): Promise<MessageRecord> {
     const data: Prisma.MessageCreateInput = {
       role,
       content,
       conversation: { connect: { id: conversationId } },
     };
+
+    if (id) {
+      data.id = id;
+    }
 
     if (metadata) {
       data.metadata = metadata as Prisma.InputJsonValue;

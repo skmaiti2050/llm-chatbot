@@ -1,52 +1,92 @@
 import { randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateInferenceLogDto } from '../ingestion/inference-log.dto';
+import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse } from '../llm/llm.interface';
 
 function sleep(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+const PREVIEW_MAX_LENGTH = 500;
+
+export type CallModelPayload = {
+  sessionId: string;
+  requestId?: string;
+  messageId?: string;
+  traceId?: string;
+  provider: string;
+  model: string;
+  messages: LlmMessage[];
+};
+
+export type CallModelResult = {
+  text: string;
+  latencyMs: number;
+  tokenUsage?: LlmResponse['tokenUsage'];
+};
+
 @Injectable()
 export class LoggingService {
   private ingestionEndpoint: string;
 
-  constructor() {
+  constructor(
+    @Inject('LlmProvider') private readonly llmProvider: LlmProvider,
+  ) {
     this.ingestionEndpoint =
       process.env.INGESTION_ENDPOINT ?? 'http://localhost:4000/ingest/logs';
   }
 
-  async callModelAndLog(payload: Omit<CreateInferenceLogDto, 'startedAt' | 'latencyMs' | 'status' | 'createdAt'> & {
-    startedAt?: string;
-  }) {
-    const startedAt = payload.startedAt ?? new Date().toISOString();
+  async callModelAndLog(payload: CallModelPayload): Promise<CallModelResult> {
+    const requestId = payload.requestId ?? randomUUID();
+    const startedAt = new Date();
 
-    const simulatedLatency = Math.floor(Math.random() * 200) + 50;
-    await sleep(simulatedLatency);
+    const inputPreview = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, PREVIEW_MAX_LENGTH);
 
-    const finishedAt = new Date().toISOString();
+    let llmResponse: LlmResponse;
+    let status: 'success' | 'error' = 'success';
+    let errorMessage: string | undefined;
+
+    try {
+      const request: LlmRequest = {
+        messages: payload.messages,
+      };
+
+      llmResponse = await this.llmProvider.call(request);
+    } catch (err) {
+      status = 'error';
+      errorMessage = err instanceof Error ? err.message : String(err);
+      llmResponse = {
+        text: `LLM call failed: ${errorMessage}`,
+        model: payload.model,
+      };
+    }
+
+    const finishedAt = new Date();
+    const latencyMs = finishedAt.getTime() - startedAt.getTime();
 
     const log: CreateInferenceLogDto = {
       sessionId: payload.sessionId,
-      requestId: payload.requestId ?? randomUUID(),
+      requestId,
+      messageId: payload.messageId,
       traceId: payload.traceId,
       provider: payload.provider,
-      model: payload.model,
-      startedAt,
-      finishedAt,
-      latencyMs: simulatedLatency,
-      status: 'success',
-      inputPreview: payload.inputPreview,
-      outputPreview: payload.outputPreview ?? 'simulated response',
-      errorMessage: payload.errorMessage,
-      tokenUsage: payload.tokenUsage,
+      model: llmResponse.model,
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      latencyMs,
+      status,
+      inputPreview,
+      outputPreview: llmResponse.text.slice(0, PREVIEW_MAX_LENGTH),
+      errorMessage,
+      tokenUsage: llmResponse.tokenUsage,
     };
 
     void this.sendWithRetry(log, 3, 200);
 
     return {
-      text: log.outputPreview,
-      latencyMs: log.latencyMs,
-      tokenUsage: log.tokenUsage,
+      text: llmResponse.text,
+      latencyMs,
+      tokenUsage: llmResponse.tokenUsage,
     };
   }
 
@@ -57,7 +97,7 @@ export class LoggingService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-    } catch (err) {
+    } catch {
       if (retries > 0) {
         await sleep(backoffMs);
         return this.sendWithRetry(payload, retries - 1, backoffMs * 2);

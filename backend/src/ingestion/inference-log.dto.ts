@@ -9,6 +9,7 @@ export interface InferenceTokenUsage {
 export interface CreateInferenceLogDto {
   sessionId: string;
   requestId: string;
+  messageId?: string;
   traceId?: string;
   provider: string;
   model: string;

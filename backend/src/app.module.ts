@@ -3,11 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { LlmModule } from './llm/llm.module';
 import { LoggingModule } from './logging/logging.module';
 import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [PrismaModule, IngestionModule, LoggingModule, ChatModule],
+  imports: [PrismaModule, IngestionModule, LlmModule, LoggingModule, ChatModule],
   controllers: [AppController],
   providers: [AppService],
 })

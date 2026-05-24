@@ -51,7 +51,8 @@ model Message {
 model InferenceLog {
   id            String             @id @default(uuid())
   sessionId     String
-  requestId     String
+  requestId     String             @unique
+  messageId     String?
   traceId       String?
   provider      String
   model         String
@@ -67,6 +68,6 @@ model InferenceLog {
   updatedAt     DateTime           @updatedAt
 
   @@index([sessionId, startedAt])
-  @@index([requestId])
+  @@index([messageId])
   @@index([createdAt])
 }

@@ -8,9 +8,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LlmModule } from './llm/llm.module';
 import { LoggingModule } from './logging/logging.module';
 import { ChatModule } from './chat/chat.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
+    PrometheusModule.register(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule, IngestionModule, LlmModule, LoggingModule.register(), ChatModule,
   ],

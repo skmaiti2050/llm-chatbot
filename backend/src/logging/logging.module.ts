@@ -4,6 +4,7 @@ import { LlmModule } from '../llm/llm.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { LoggingService } from './logging.service';
+import { makeCounterProvider, makeHistogramProvider } from '@willsoto/nestjs-prometheus';
 import { LogsProcessor } from './logging.processor';
 
 function getRedisConfig(): Record<string, any> | null {
@@ -41,7 +42,25 @@ export class LoggingModule {
         ]
       : [];
 
-    const providers: any[] = [LoggingService];
+    const providers: any[] = [
+      LoggingService,
+      makeCounterProvider({
+        name: 'llm_requests_total',
+        help: 'Total number of LLM requests',
+        labelNames: ['provider', 'model', 'status'],
+      }),
+      makeHistogramProvider({
+        name: 'llm_request_latency_seconds',
+        help: 'Latency of LLM requests in seconds',
+        labelNames: ['provider', 'model', 'status'],
+        buckets: [0.1, 0.5, 1, 2, 5, 10, 20, 30],
+      }),
+      makeCounterProvider({
+        name: 'llm_tokens_total',
+        help: 'Total number of tokens used',
+        labelNames: ['provider', 'model', 'type'],
+      }),
+    ];
     if (redisConfig) {
       providers.push(LogsProcessor);
     }

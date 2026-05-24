@@ -5,6 +5,8 @@ import { Queue } from 'bull';
 import { CreateInferenceLogDto, normalizeInferenceLogInput } from '../ingestion/inference-log.dto';
 import { PrismaInferenceLogRepository } from '../ingestion/prisma-inference-log.repository';
 import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm/llm.interface';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter, Histogram } from 'prom-client';
 
 export type CallModelPayload = {
   sessionId: string;
@@ -31,6 +33,9 @@ export class LoggingService {
     @Inject('LlmProvider') private readonly llmProvider: LlmProvider,
     @Optional() @InjectQueue('inference-logs') private readonly logsQueue: Queue | null,
     private readonly inferenceLogRepository: PrismaInferenceLogRepository,
+    @InjectMetric('llm_requests_total') private readonly requestsCounter: Counter<string>,
+    @InjectMetric('llm_request_latency_seconds') private readonly latencyHistogram: Histogram<string>,
+    @InjectMetric('llm_tokens_total') private readonly tokensCounter: Counter<string>,
   ) {}
 
   private async persistLog(log: CreateInferenceLogDto): Promise<void> {
@@ -95,6 +100,18 @@ export class LoggingService {
 
     await this.persistLog(log);
 
+    this.requestsCounter.labels(payload.provider, llmResponse.model, status).inc();
+    this.latencyHistogram.labels(payload.provider, llmResponse.model, status).observe(latencyMs / 1000);
+    
+    if (llmResponse.tokenUsage) {
+      if (llmResponse.tokenUsage.promptTokens) {
+        this.tokensCounter.labels(payload.provider, llmResponse.model, 'prompt').inc(llmResponse.tokenUsage.promptTokens);
+      }
+      if (llmResponse.tokenUsage.completionTokens) {
+        this.tokensCounter.labels(payload.provider, llmResponse.model, 'completion').inc(llmResponse.tokenUsage.completionTokens);
+      }
+    }
+
     return {
       text: llmResponse.text,
       latencyMs,
@@ -135,6 +152,7 @@ export class LoggingService {
     const latencyMs = finishedAt.getTime() - startedAt.getTime();
     const inputPreview = payload.messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, PREVIEW_MAX_LENGTH);
 
+    const status = errorMessage ? 'error' : 'success';
     const log: CreateInferenceLogDto = {
       sessionId: payload.sessionId,
       requestId,
@@ -145,12 +163,15 @@ export class LoggingService {
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
       latencyMs,
-      status: errorMessage ? 'error' : 'success',
+      status,
       inputPreview,
       outputPreview: fullText.slice(0, PREVIEW_MAX_LENGTH),
       errorMessage,
     };
 
     await this.persistLog(log);
+
+    this.requestsCounter.labels(payload.provider, payload.model, status).inc();
+    this.latencyHistogram.labels(payload.provider, payload.model, status).observe(latencyMs / 1000);
   }
 }

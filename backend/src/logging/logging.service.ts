@@ -1,13 +1,11 @@
 import { randomUUID } from 'crypto';
-import { Inject, Injectable } from '@nestjs/common';
-import { CreateInferenceLogDto } from '../ingestion/inference-log.dto';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { Prisma } from '@prisma/client';
+import { CreateInferenceLogDto, normalizeInferenceLogInput } from '../ingestion/inference-log.dto';
+import { PrismaService } from '../prisma/prisma.service';
 import type { LlmProvider, LlmMessage, LlmRequest, LlmResponse, LlmStreamChunk } from '../llm/llm.interface';
-
-function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
-
-const PREVIEW_MAX_LENGTH = 500;
 
 export type CallModelPayload = {
   sessionId: string;
@@ -26,15 +24,50 @@ export type CallModelResult = {
   tokenUsage?: LlmResponse['tokenUsage'];
 };
 
+const PREVIEW_MAX_LENGTH = 500;
+
 @Injectable()
 export class LoggingService {
-  private ingestionEndpoint: string;
-
   constructor(
     @Inject('LlmProvider') private readonly llmProvider: LlmProvider,
-  ) {
-    this.ingestionEndpoint =
-      process.env.INGESTION_ENDPOINT ?? 'http://localhost:4000/ingest/logs';
+    @Optional() @InjectQueue('inference-logs') private readonly logsQueue: Queue | null,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private async persistLog(log: CreateInferenceLogDto): Promise<void> {
+    if (this.logsQueue) {
+      await this.logsQueue.add(log);
+      return;
+    }
+
+    const normalized = normalizeInferenceLogInput(log);
+    if (!normalized) return;
+
+    try {
+      await this.prisma.inferenceLog.create({
+        data: {
+          sessionId: normalized.sessionId,
+          requestId: normalized.requestId,
+          messageId: normalized.messageId,
+          traceId: normalized.traceId,
+          provider: normalized.provider,
+          model: normalized.model,
+          startedAt: new Date(normalized.startedAt),
+          finishedAt: normalized.finishedAt ? new Date(normalized.finishedAt) : null,
+          latencyMs: normalized.latencyMs,
+          status: normalized.status,
+          inputPreview: normalized.inputPreview,
+          outputPreview: normalized.outputPreview,
+          errorMessage: normalized.errorMessage,
+          tokenUsage: normalized.tokenUsage as Prisma.InputJsonValue | undefined,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return;
+      }
+      throw err;
+    }
   }
 
   async callModelAndLog(payload: CallModelPayload): Promise<CallModelResult> {
@@ -83,7 +116,7 @@ export class LoggingService {
       tokenUsage: llmResponse.tokenUsage,
     };
 
-    void this.sendWithRetry(log, 3, 200);
+    await this.persistLog(log);
 
     return {
       text: llmResponse.text,
@@ -139,21 +172,6 @@ export class LoggingService {
       errorMessage,
     };
 
-    void this.sendWithRetry(log, 3, 200);
-  }
-
-  private async sendWithRetry(payload: CreateInferenceLogDto, retries: number, backoffMs: number): Promise<void> {
-    try {
-      await fetch(this.ingestionEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      if (retries > 0) {
-        await sleep(backoffMs);
-        return this.sendWithRetry(payload, retries - 1, backoffMs * 2);
-      }
-    }
+    await this.persistLog(log);
   }
 }

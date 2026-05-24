@@ -12,7 +12,7 @@ import { ChatModule } from './chat/chat.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
-    PrismaModule, IngestionModule, LlmModule, LoggingModule, ChatModule,
+    PrismaModule, IngestionModule, LlmModule, LoggingModule.register(), ChatModule,
   ],
   controllers: [AppController],
   providers: [

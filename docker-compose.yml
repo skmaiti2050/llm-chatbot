@@ -41,6 +41,7 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       CONTEXT_WINDOW_SIZE: ${CONTEXT_WINDOW_SIZE:-20}
       CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+      METRICS_BEARER_TOKEN: ${METRICS_BEARER_TOKEN:-grafana-metrics-token}
       PORT: 4000
     ports:
       - "4000:4000"

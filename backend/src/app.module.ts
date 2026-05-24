@@ -9,10 +9,13 @@ import { LlmModule } from './llm/llm.module';
 import { LoggingModule } from './logging/logging.module';
 import { ChatModule } from './chat/chat.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { MetricsController } from './metrics.controller';
 
 @Module({
   imports: [
-    PrometheusModule.register(),
+    PrometheusModule.register({
+      controller: MetricsController,
+    }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule, IngestionModule, LlmModule, LoggingModule.register(), ChatModule,
   ],

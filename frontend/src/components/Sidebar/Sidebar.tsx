@@ -8,6 +8,7 @@ type SidebarProps = {
   conversations: ConversationSummary[]
   isLoadingConversations: boolean
   lastUpdate?: string
+  onDeleteConversation: (id: string) => void
   onNewConversation: () => void
   onSelectConversation: (id: string) => void
   statusNote: string
@@ -21,6 +22,7 @@ export function Sidebar({
   conversations,
   isLoadingConversations,
   lastUpdate,
+  onDeleteConversation,
   onNewConversation,
   onSelectConversation,
   statusNote,
@@ -70,22 +72,36 @@ export function Sidebar({
 
         {conversations.length > 0 && (
           <ul className="sidebar-pane__items">
-            {conversations.map((conv) => (
-              <li key={conv.id}>
-                <button
-                  className={`sidebar-pane__item${conv.id === activeConversationId ? ' sidebar-pane__item--active' : ''}`}
-                  type="button"
-                  onClick={() => onSelectConversation(conv.id)}
-                  disabled={conv.id === activeConversationId}
-                >
-                  <span className="sidebar-pane__item-id">{shortId(conv.id)}</span>
-                  <span className={`sidebar-pane__item-badge sidebar-pane__item-badge--${conv.status}`}>
-                    {conv.status}
-                  </span>
-                  <time className="sidebar-pane__item-time">{formatTime(conv.createdAt)}</time>
-                </button>
-              </li>
-            ))}
+            {conversations.map((conv) => {
+              const isActive = conv.id === activeConversationId
+
+              return (
+                <li key={conv.id}>
+                  <div
+                    className={`sidebar-pane__item${isActive ? ' sidebar-pane__item--active' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={isActive ? undefined : () => onSelectConversation(conv.id)}
+                    onKeyDown={isActive ? undefined : (e) => { if (e.key === 'Enter') onSelectConversation(conv.id) }}
+                  >
+                    <span className="sidebar-pane__item-id">{shortId(conv.id)}</span>
+                    <span className={`sidebar-pane__item-badge sidebar-pane__item-badge--${conv.status}`}>
+                      {conv.status}
+                    </span>
+                    <time className="sidebar-pane__item-time">{formatTime(conv.createdAt)}</time>
+                    <button
+                      className="sidebar-pane__item-delete"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id) }}
+                      title="Delete conversation"
+                      aria-label="Delete conversation"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

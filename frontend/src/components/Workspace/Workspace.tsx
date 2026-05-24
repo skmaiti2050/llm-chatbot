@@ -9,6 +9,7 @@ type WorkspaceProps = {
   isSending: boolean
   messages: ChatMessage[]
   onCancelConversation: () => void
+  onDeleteConversation: () => void
   onDraftChange: (value: string) => void
   onNewSession: () => void
   onPresetSelect: (value: string) => void
@@ -23,6 +24,7 @@ export function Workspace({
   isSending,
   messages,
   onCancelConversation,
+  onDeleteConversation,
   onDraftChange,
   onNewSession,
   onPresetSelect,
@@ -43,6 +45,9 @@ export function Workspace({
               Cancel
             </button>
           )}
+          <button className="workspace-pane__button workspace-pane__button--delete" type="button" onClick={onDeleteConversation}>
+            Delete
+          </button>
           <button className="workspace-pane__button workspace-pane__button--ghost" type="button" onClick={onNewSession}>
             New session
           </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import './App.css'
+import { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog'
 import { NotesPanel } from './components/NotesPanel/NotesPanel'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { Workspace } from './components/Workspace/Workspace'
@@ -25,11 +26,32 @@ function App() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('booting')
   const [isSending, setIsSending] = useState(false)
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState('Connecting to the API…')
 
   useEffect(() => {
     void bootConversation()
   }, [])
+
+  useEffect(() => {
+    if (connectionState !== 'offline') return
+
+    const id = setInterval(async () => {
+      try {
+        const response = await fetch(`${apiBase}/health`)
+
+        if (response.ok) {
+          setConnectionState('online')
+          setStatusNote('Backend reconnected')
+          void loadConversations()
+        }
+      } catch {
+        // still offline
+      }
+    }, 15_000)
+
+    return () => clearInterval(id)
+  }, [connectionState])
 
   async function loadMessages(id: string) {
     const response = await fetch(`${apiBase}/conversations/${id}/messages`)
@@ -134,6 +156,49 @@ function App() {
     }
   }
 
+  async function handleDeleteConversation(id: string) {
+    if (connectionState !== 'online') return
+    setDeleteConfirmId(id)
+  }
+
+  async function confirmDelete() {
+    const id = deleteConfirmId
+    if (!id) return
+
+    setDeleteConfirmId(null)
+
+    try {
+      const response = await fetch(`${apiBase}/conversations/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Could not delete conversation')
+      }
+
+      if (id === conversationId) {
+        const remaining = conversations.filter((c) => c.id !== id)
+        const next = remaining[0]
+
+        if (next) {
+          setConversationId(next.id)
+          setConversationStatus(next.status)
+          await loadMessages(next.id)
+        } else {
+          setConversationId('')
+          setConversationStatus('active')
+          setMessages([])
+        }
+
+        void loadConversations()
+      } else {
+        void loadConversations()
+      }
+    } catch {
+      setStatusNote('Failed to delete conversation')
+    }
+  }
+
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -219,6 +284,7 @@ function App() {
         conversations={conversations}
         isLoadingConversations={isLoadingConversations}
         lastUpdate={lastUpdate}
+        onDeleteConversation={handleDeleteConversation}
         onNewConversation={() => void bootConversation()}
         onSelectConversation={handleSelectConversation}
         statusNote={statusNote}
@@ -232,6 +298,7 @@ function App() {
         isSending={isSending}
         messages={messages}
         onCancelConversation={() => void handleCancelConversation()}
+        onDeleteConversation={() => void handleDeleteConversation(conversationId)}
         onDraftChange={setDraft}
         onNewSession={() => void bootConversation()}
         onPresetSelect={setDraft}
@@ -240,6 +307,16 @@ function App() {
       />
 
       <NotesPanel onPresetSelect={setDraft} />
+
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        title="Delete conversation"
+        message="This will permanently delete this conversation and all its messages. This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </main>
   )
 }

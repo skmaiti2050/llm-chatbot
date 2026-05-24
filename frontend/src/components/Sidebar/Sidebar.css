@@ -127,7 +127,7 @@
   transition: background 0.15s;
 }
 
-.sidebar-pane__item:hover:not(:disabled) {
+.sidebar-pane__item:hover:not(.sidebar-pane__item--active) {
   background: rgba(255, 255, 255, 0.85);
 }
 
@@ -177,6 +177,28 @@
   font-size: 0.7rem;
   color: var(--muted);
   flex-shrink: 0;
+}
+
+.sidebar-pane__item-delete {
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 0.3rem;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.sidebar-pane__item:hover .sidebar-pane__item-delete {
+  opacity: 1;
+}
+
+.sidebar-pane__item-delete:hover {
+  color: rgb(180, 60, 60);
 }
 
 .sidebar-pane__metrics {
